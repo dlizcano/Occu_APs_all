@@ -1,0 +1,57 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  favicon: "images/emptyforest.png"
+  twitter-card: true
+  site-url: https://dlizcano.github.io/Occu_APs_all
+  open-graph: true
+  title: "Occupancy in Protected Areas"
+  navbar:
+    right:
+      - href: index.qmd
+        text: Home
+      - about.qmd
+      - icon: github
+        href: https://github.com/Occu_APs_all
+      - icon: mastodon
+        href: https://fosstodon.org/@dlizcano
+      - icon: bluesky
+        href: https://bsky.app/profile/dlizcano
+      - icon: envelope
+        href: mailto:dj.lizcano@gmail.org
+      - icon: rss
+        href: blog.xml  
+  
+  page-footer:
+    background: gray
+    left: Occupancy in Protected Areas is licensed under a [CC BY-SA 4.0 License](https://creativecommons.org/licenses/by-sa/4.0/)
+    right: This website was built with {{< fa heart title="a heart" >}} and [Quarto](https://quarto.org/)
+
+  
+format:
+  html:
+    toc: true
+    theme:
+      light: flatly
+      dark: darkly
+    css: styles.css
+    code-link: true
+    code-block-bg: "gray70" 
+    code-fold: true
+    highlight-style: arrow
+    mainfont: "Roboto"
+    monofont: Fira Code, consolas, courier, monospace
+    fig-dpi: 600
+    fig-align: center
+    fig-width: 8
+    fig-asp: 0.4 # 1 / pi
+    fig-format: png
+
+lightbox:
+  match: auto
+  effect: fade
+  desc-position: right
+  loop: TRUE
+  

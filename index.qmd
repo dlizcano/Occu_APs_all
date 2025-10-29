@@ -1,0 +1,26 @@
+---
+title: ""
+sidebar: false
+toc: false
+page-layout: full
+format: html
+
+listing:
+  - id: recent-blog-listing
+    contents:
+      - "blog/*/index.qmd"
+    sort: "date desc"
+    type: grid
+    max-items: 9
+    page-size: 3
+    categories: false
+    sort-ui: false
+    filter-ui: false
+    fields: [title, image, date, categories]
+---
+
+text...
+
+```{r}
+1 + 1
+```

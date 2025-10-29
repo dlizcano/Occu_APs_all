@@ -1,0 +1,7 @@
+/* css styles */
+
+// Fonts
+$font-family-base: "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif !default;
+$headings-font-family: "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif !default;
+$body-color: $gray-900 !default;
+$body-text-align: justify !default;

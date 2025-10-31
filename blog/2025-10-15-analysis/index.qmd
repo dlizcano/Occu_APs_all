@@ -28,11 +28,23 @@ categories: [model, code, analysis]
 image: "image.png"
 ---
 
-## Multi-species occupancy model using spOccupancy
+## Single-species occupancy models
+
+Single-species occupancy models (MacKenzie et al., 2002) are widely used in ecology to estimate and predict the spatial distribution of a species from data collected in presence–absence repeated surveys. The popularity of these models stems from their ability to estimate the effects of environmental or management covariates on species occurrences, while accounting for false-negative errors in detection, which are common in surveys of natural populations.
+
+## Multi-species occupancy models
+
+Multi-species occupancy models for estimating the effects of environmental covariates on several species occurrences while accounting for imperfect detection were build on the principle of the Single-species occupancy model, and developed more than 20 years ago.
 
 Multi-species occupancy models are a powerful tool for combining information from multiple species to estimate both individual and community-level responses to management and environmental variables. 
 
+## Objective
 
+We want to asses the effect of protected areas on the occupancy of the species. We hypothesize that several mammal species have benefited of the conservation actions provided by protected areas, so we expect a decreases in occupancy from the interior of the protected area to the exterior as a function of the distance to the protected area border. 
+
+To account for several ecological factors we also tested and included elevation and forest integrity index as occupancy covariates. 
+
+We used the newly developed R package `spOccupancy` as approach to modelling the probability of occurrence of each species as a function of fixed effects of measured environmental covariates and random effects designed to account for unobserved sources of spatial dependence (spatial autocorrelation). 
 
 ```{r}
 #| echo: true
@@ -40,39 +52,47 @@ Multi-species occupancy models are a powerful tool for combining information fro
 #| warning: false
 #| message: false
 #| 
-library(grateful)
-library(readxl)
-library(DT)
-library(sf)
-library(mapview)
-library(maps)
-library(tmap)
-library(terra)
-library(elevatr)
-#library(spOccupancy)
+library(grateful) # Facilitate Citation of R Packages
+library(readxl) # Read Excel Files
+library(DT) # A Wrapper of the JavaScript Library 'DataTables'
+library(sf) # Simple Features for R
+library(mapview) # Interactive Viewing of Spatial Data in R
+library(maps) # Draw Geographical Maps
+library(tmap) # Thematic Maps
+library(terra) # Spatial Data Analysis
+library(elevatr) # Access Elevation Data from Various APIs
 
 # library(rjags) # Bayesian Graphical Models using MCMC 
 library(bayesplot) # Plotting for Bayesian Models # Plotting for Bayesian Models
 library(tictoc) # Functions for Timing R Scripts, as Well as Implementations of "Stack" and "StackList" Structures 
-library(MCMCvis)
-library(coda)
+library(MCMCvis) # Tools to Visualize, Manipulate, and Summarize MCMC Output
+library(coda) # Output Analysis and Diagnostics for MCMC
 library(beepr) # Easily Play Notification Sounds on any Platform 
 library(snowfall) # Easier Cluster Computing (Based on 'snow')
 
 #library(ggmcmc)
-library(camtrapR)
-library(spOccupancy)
-library(tidyverse)
+library(camtrapR) # Camera Trap Data Management and Preparation 
+library(spOccupancy) # Single-Species, Multi-Species, and Integrated Spatial Occupancy
+library(tidyverse) # Easily Install and Load the 'Tidyverse'
+
 
 ```
 
+
 ## Fitting a Multi-Species Spatial Occupancy Model
 
-We use a more computationally efficient approach for fitting spatial multi-species occupancy models. Doser, Finley, and Banerjee (2023) call this alternative approach a “spatial factor multi-species occupancy model”, and we describe this in depth in Doser, Finley, and Banerjee (2023). This newer approach also accounts for residual species correlations (i.e., it is a joint species distribution model with imperfect detection). Our simulation results from Doser, Finley, and Banerjee (2023) show that this alternative approach outperforms, or performs equally, while being substantially faster than using `spMsPGOcc()`.
+We use a more computationally efficient approach for fitting spatial multi-species occupancy models. This alternative approach is called a “spatial factor multi-species occupancy model”, and is described in depth in Doser, Finley, and Banerjee (2023). This newer approach also accounts for residual species correlations (i.e., it is a joint species distribution model with imperfect detection). The simulation results from Doser, Finley, and Banerjee (2023) show that this new alternative approach outperforms, or performs equally to `spMsPGOcc()`, while being substantially faster.
+
+[The Latent factor multi-species occupancy model is described in detail here](https://doserlab.com/files/spoccupancy-web/articles/factormodels#basic-model-description)
+
+
 
 ### Tamshiyacu Tahuayo data
 
-Here we use the tables PER-003_BD_ACRCTT_T0.xlsx
+Here we use the tables: 
+- PER-003_BD_ACRCTT_T0.xlsx
+- PER-002_BD_ACRTT-PILOTO.xlsx
+
 
 ```{r}
 
@@ -87,9 +107,10 @@ Per_Tahuayo_piloto <- loadproject("F:/WCS-CameraTrap/data/BDcorregidas/Peru/PER-
 
 
 
- Per_Tahuayo <- loadproject("F:/WCS-CameraTrap/data/BDcorregidas/Peru/PER-003_BD_ACRCTT_T0.xlsx")
+Per_Tahuayo <- loadproject("F:/WCS-CameraTrap/data/BDcorregidas/Peru/PER-003_BD_ACRCTT_T0.xlsx")
 
-
+ 
+FLII2016 <- rast("C:/CodigoR/WCS_2024/FLI/raster/FLII_final/FLII_2016.tif")
 
 # get sites
 # Per_Pacaya_sites <- get.sites("F:/WCS-CameraTrap/data/BDcorregidas/Peru/PER-003_BD_ACRCTT_T0.xlsx")
@@ -121,11 +142,16 @@ st_crs(Per_Tahuayo_piloto_sites) <- 4326
 elevation_17 <- rast(get_elev_raster(Per_Tahuayo_sites, z = 10)) #z =1-14
 # bb <-  st_as_sfc(st_bbox(elevation_17)) # make bounding box 
 
+# get FLI
+
 
 
 
 # extract covs using points and add to _sites
-covs_Per_Tahuayo_sites <- cbind(Per_Tahuayo_sites, terra::extract(elevation_17, Per_Tahuayo_sites))
+covs_Per_Tahuayo_sites <- cbind(Per_Tahuayo_sites,
+                                terra::extract(elevation_17,
+                                               Per_Tahuayo_sites)
+                                )
 
 # extract covs using points and add to _sites
 covs_Per_Tahuayo_piloto_sites <- cbind(Per_Tahuayo_piloto_sites, terra::extract(elevation_17, Per_Tahuayo_piloto_sites))
@@ -282,9 +308,18 @@ efort <- lapply(DetHist_list, FUN = function(x) x$effort)
 
 ```
 
+
+
 ### Arrange spatial covariates
 
+The standard EPSG code for a Lambert Azimuthal Equal-Area projection for South America is EPSG:10603 (WGS 84 / GLANCE South America). This projection is specifically designed for the continent and has its center located around the central meridian for the region. The units are meters.
+
+
+FLII scores range from 0 (lowest integrity) to 10 (highest). Grantham discretized this range to define three broad illustrative categories: low (≤6.0); medium (>6.0 and <9.6); and high integrity (≥9.6).
+
 ```{r}
+
+
 
 # make sf()
 Per_full_sf <- CToperation |> 
@@ -300,10 +335,15 @@ Per_full_sf$in_AP = as.factor(st_intersects(Per_full_sf, AP_Tahuayo, sparse = FA
 
 in_AP <- as.numeric((st_drop_geometry(Per_full_sf$in_AP)))
 
+# extract FLII
+Per_full_sf$FLII <- terra::extract(FLII2016, Per_full_sf)[,2]
+str(Per_full_sf$FLII)
+
+
 # mapview(full_sites_14_15_16_sf, zcol = "in_AP", burst = TRUE)
 
-# Transform coord to UTM Z17 Ecuador EPSG:32717 WGS 84 / UTM zone 17S
-Per_full_sf_UTM <- st_transform(Per_full_sf, "EPSG:32717")
+# Transform coord to Lambert Azimuthal Equal-Area
+Per_full_sf_UTM <- st_transform(Per_full_sf, "EPSG:10603")
 
 coords <- st_coordinates(Per_full_sf_UTM)
 #str(coords)
@@ -313,8 +353,8 @@ coords <- st_coordinates(Per_full_sf_UTM)
     #--- set CRS ---#
 #    st_crs(cam_sf) <- 4326
 
-#transform coord data to UTM
-AP_Tahuayo_UTM <- st_transform(AP_Tahuayo, "EPSG:32717")
+#transform coord data to Lambert Azimuthal Equal-Area
+AP_Tahuayo_UTM <- st_transform(AP_Tahuayo, "EPSG:10603")
 # Convert to LINESTRING
 AP_Tahuayo_UTM_line <- st_cast(AP_Tahuayo_UTM,"MULTILINESTRING")# "LINESTRING")
 
@@ -340,6 +380,14 @@ hist(Per_full_sf_UTM$border_dist)
 
 ### Prepare the model
 
+::: {.callout-tip}
+## Data in a 3D array
+
+The data must be placed in a three-dimensional array with dimensions corresponding to species, sites, and replicates in that order.
+:::
+
+
+
 #### The function sfMsPGOcc 
 
 Fits multi-species spatial occupancy models with species correlations (i.e., a spatially-explicit joint species distribution model with imperfect detection). We use Polya-Gamma latent variables and a spatial factor modeling approach. Currently, models are implemented using a Nearest Neighbor Gaussian Process.
@@ -350,9 +398,9 @@ Fits multi-species spatial occupancy models with species correlations (i.e., a s
 # curr.sp <- sort(unique(Ecu_14_15_16$.id))# c('BAWW', 'BLJA', 'GCFL')
 # sort(names(DetHist_list))
 selected.sp <-  c(
-  "Atelocynus microtis" ,
-  "Coendou prehensilis" ,
- "Cuniculus paca",           
+"Atelocynus microtis" ,
+"Coendou prehensilis" ,
+"Cuniculus paca",           
 # "Dasyprocta fuliginosa.",      
 "Dasypus sp." ,    
 "Didelphis marsupialis",    
@@ -410,12 +458,14 @@ transposed_array <- aperm(my_array_abind, c(3, 1, 2))
 
 #### site covs
 sitecovs <- as.data.frame(st_drop_geometry(
-                    Per_full_sf_UTM[,5:7]))
+                    Per_full_sf_UTM[,5:8]))
+
  sitecovs[, 1] <- as.vector((sitecovs[,1]))   # scale numeric covariates
  sitecovs[, 3] <- as.vector((sitecovs[,3]))   # scale numeric covariates
+ sitecovs[, 4] <- as.vector((sitecovs[,4]))   # scale numeric covariates
  # sitecovs$fact <- factor(c("A", "A", "B"))    # categorical covariate
 
-names(sitecovs) <- c("elev", "in_AP", "border_dist")
+names(sitecovs) <- c("elev", "in_AP", "FLII", "border_dist")
 
 # check consistancy equal number of spatial covariates and rows in data
 # identical(nrow(ylist[[1]]), nrow(covars)) 
@@ -424,13 +474,15 @@ names(sitecovs) <- c("elev", "in_AP", "border_dist")
 
 # match the names to "y"  "occ.covs" "det.covs" "coords" 
 data_list <- list(y = transposed_array, # Historias de detección
-                  occ.covs = sitecovs, #covs de sitio
+                  occ.covs = sitecovs, # covs de sitio
                   det.covs  = list(effort = DetHist_list[[1]]$effort),
                   coords = st_coordinates(Per_full_sf_UTM)
                   )  # agregamos el esfuerzo de muestreo como covariable de observación
 
 
 ```
+
+
 
 ### Running the model
 
@@ -442,8 +494,10 @@ We let `spOccupancy` set the initial values by default based on the prior distri
 # 3. 1 Modelo multi-especie  -----------------------------------------
 
 # 2. Model fitting --------------------------------------------------------
-# Fit a non-spatial, single-species occupancy model. 
-out <- msPGOcc(occ.formula = ~ scale(elev) + scale(border_dist) , 
+# Fit a non-spatial, multi-species occupancy model. 
+out <- msPGOcc(occ.formula = ~ scale(elev) +
+                               scale(border_dist) + 
+                               scale(FLII) , 
                det.formula = ~ scale(effort) , # Ordinal.day + I(Ordinal.day^2) + Year
 	             data = data_list, 
 	             n.samples = 6000, 
@@ -452,23 +506,40 @@ out <- msPGOcc(occ.formula = ~ scale(elev) + scale(border_dist) ,
 	             n.chains = 3,
 	             n.report = 1000);beep(sound = 4)
 
+# Fit a non-spatial, Latent Factor Multi-Species Occupancy Model. 
+  out.lfMs <- msPGOcc(occ.formula = ~ scale(elev) +
+                               scale(border_dist) + 
+                               scale(FLII) , 
+               det.formula = ~ scale(effort), # Ordinal.day + I(Ordinal.day^2) + Year
+  	             data = data_list, 
+                 n.omp.threads = 6,
+  	             n.samples = 6000, 
+                 n.factors = 5, # balance of rare sp. and run time
+  	             n.thin = 10, 
+  	             n.burn = 1000, 
+  	             n.chains = 3,
+  	             n.report = 1000);beep(sound = 4)
+
 summary(out, level = 'community')
 # Fit a spatial, single-species occupancy model using 
 # latent factors.
 tictoc::tic()
-  out.sp <- sfMsPGOcc(occ.formula = ~ scale(elev) + scale(border_dist) , 
-                      det.formula = ~ scale(effort), # Ordinal.day + I(Ordinal.day^2) + Year, 	          
+  out.sp <- sfMsPGOcc(occ.formula = ~ scale(elev) +
+                               scale(border_dist) + 
+                               scale(FLII) , 
+               det.formula = ~ scale(effort), # Ordinal.day + I(Ordinal.day^2) + Year, 	          
                       data = data_list, 
+                      n.omp.threads = 6,
                       n.batch = 600, 
                       batch.length = 25, # iter=600*25
                       n.thin = 10, 
                       n.burn = 5000, 
                       n.chains = 3,
                       NNGP = TRUE,
-                      n.factors = 3,
+                      n.factors = 5, # balance of rare sp. and run time
                       n.neighbors = 15,
                       cov.model = 'exponential',
-                      n.report = 100);beep(sound = 4)
+                      n.report = 1000);beep(sound = 4)
 tictoc::toc()
 #########################
 # tictoc::tic()
@@ -492,6 +563,8 @@ save(out, file="C:/CodigoR/Occu_APs_all/blog/2025-10-15-analysis/result/result_2
 # save the results to not run again
 save(out.sp, file="C:/CodigoR/Occu_APs_all/blog/2025-10-15-analysis/result/sp_result_2.R") # guardamos los resultados para no correr de nuevo
 
+save(out.lfMs, file="C:/CodigoR/Occu_APs_all/blog/2025-10-15-analysis/result/lfms_result_2.R") # guardamos los resultados para no correr de nuevo
+
 
 # load("C:/CodigoR/Occu_APs_all/blog/2025-10-15-analysis/result/sp_result_2.R")
 # summary(fit.commu)
@@ -503,20 +576,45 @@ save(out.sp, file="C:/CodigoR/Occu_APs_all/blog/2025-10-15-analysis/result/sp_re
 ```
 
 
-###Model validation
+### Model validation
 
 We next perform a posterior predictive check using the Freeman-Tukey statistic grouping the data by sites. We summarize the posterior predictive check with the summary() function, which reports a Bayesian p-value. A Bayesian p-value that hovers around 0.5 indicates adequate model fit, while values less than 0.1 or greater than 0.9 suggest our model does not fit the data well (Hobbs and Hooten 2015). As always with a simulation-based analysis using MCMC, you will get numerically slightly different values.
 
 ```{r}
+#| warning: false
+#| message: false
 # 3. Model validation -----------------------------------------------------
 # Perform a posterior predictive check to assess model fit. 
-ppc.out <- ppcOcc(out, fit.stat = 'freeman-tukey', group = 1)
-ppc.out.sp <- ppcOcc(out.sp, fit.stat = 'freeman-tukey', group = 1)
+ppc.out <- ppcOcc(out, fit.stat = 'freeman-tukey', 
+                  group = 1)
+ppc.out.lfMs <- ppcOcc(out.lfMs, fit.stat = 'freeman-tukey', 
+                  group = 1)
+ppc.out.sp <- ppcOcc(out.sp, fit.stat = 'freeman-tukey',
+                     group = 1)
+
 # Calculate a Bayesian p-value as a simple measure of Goodness of Fit.
 # Bayesian p-values between 0.1 and 0.9 indicate adequate model fit. 
 summary(ppc.out)
+summary(ppc.out.lfMs)
 summary(ppc.out.sp)
 
+
+
+```
+
+
+::: {.callout-important}
+A Bayesian p-value that around 0.5 indicates adequate model fit, while values less than 0.1 or greater than 0.9 suggest our model does not fit the data well.
+:::
+
+
+
+#### Fit plot
+
+```{r}
+#| fig-cap: 
+#|   - "The most symmetrical, better fit!"
+#|   
 #### fit plot
 ppc.df <- data.frame(fit = ppc.out.sp$fit.y, 
                      fit.rep = ppc.out.sp$fit.y.rep, 
@@ -526,24 +624,26 @@ ppc.df$color[ppc.df$fit.rep.1 > ppc.df$fit.1] <- 'lightsalmon'
 plot(ppc.df$fit.1, ppc.df$fit.rep.1, bg = ppc.df$color, pch = 21, 
      ylab = 'Fit', xlab = 'True')
 lines(ppc.df$fit.1, ppc.df$fit.1, col = 'black')
-
 ```
 
 
 
-###Model comparison 
+
+### Model comparison 
+
 ```{r}
 # 4. Model comparison -----------------------------------------------------
 # Compute Widely Applicable Information Criterion (WAIC)
 # Lower values indicate better model fit. 
 waicOcc(out)
+waicOcc(out.lfMs)
 waicOcc(out.sp)
 
 
 ```
 
 
-### Results as table
+### Model comparison as table
 
 ```{r}
 # Here we summarize the spatial factor loadings
@@ -552,44 +652,47 @@ waicOcc(out.sp)
 # Resultados --------------------------------------------------------------
 # Extraemos lo tabla de valores estimados
 modresult <- cbind(as.data.frame(waicOcc(out)),
-                  as.data.frame(waicOcc(out.sp))#,
+                  as.data.frame(waicOcc(out.sp)),
+                  as.data.frame(waicOcc(out.lfMs))
                   #as.data.frame(waicOcc(out.sp.gaus))
                   )
 # View(modresult)
-DT::datatable(t(modresult))
+modresult_sorted <- as.data.frame(t(modresult)) |> 
+  arrange(WAIC) # sort by
+  
+DT::datatable(modresult_sorted)
 
 ```
- Lower values indicate better model fit. 
  
+::: {.callout-important}
+ Lower values in WAIC indicate better model fit.
+:::
  
- ### Posterior summary
+### Posterior Summary
+
 ```{r}
 # 5. Posterior summaries --------------------------------------------------
 # Concise summary of main parameter estimates
 summary(out.sp, level = 'community')
 summary(out.sp, level = 'species')
 summary(out.sp, level = 'both')
-# Create simple plot summaries using MCMCvis package.
-# Detection covariate effects --------- 
-MCMCplot(out.sp$alpha.comm.samples, ref_ovl = TRUE, ci = c(50, 95))
-# Occupancy community-level effects 
-MCMCplot(out.sp$beta.comm.samples, ref_ovl = TRUE, ci = c(50, 95))
-# Occupancy species-level effects 
-MCMCplot(out.sp$beta.samples[,23:44], ref_ovl = TRUE, ci = c(50, 95))
-
-# Occupancy species-level effects 
-MCMCplot(out.sp$beta.samples[,45:66], ref_ovl = TRUE, ci = c(50, 95))
-
-
 
 ```
  
  
 Bayesian p-values can be inspected to check for lack of fit (overall or by species). Lack of fit at significance level = 0.05 is indicated by Bayesian p-values below 0.025 or greater than 0.975. The overall Bayesian p-value (Bpvalue) indicates no problems with lack of fit. Likewise, species-level Bayesian p-values (Bpvalue_species) indicate no lack of fit for any species.
 
-### Diagnostics
+> Gelman and Rubin's convergence diagnostic: Approximate convergence is diagnosed when the upper limit is close to 1.
+
+Convergence is diagnosed when the chains have ‘forgotten’ their initial values, and the output from all chains is indistinguishable. The gelman.diag diagnostic is applied to a single variable from the chain. It is based a comparison of within-chain and between-chain variances, and is similar to a classical analysis of variance.
+
+Values substantially above 1 indicate lack of convergence.
+
+
+### Model Diagnostics
 
 ```{r}
+
 #| eval: true
 #| echo: true
 #| code-fold: true
@@ -617,7 +720,10 @@ POSTERIOR.CHAINS <- mcmc.list(CHAIN.1, CHAIN.2, CHAIN.3)#, CHAIN.4)
 # dir.create ("Beetle_plots")
 
 # Plot chain mixing of each parameter to a multi-panel plot and save to the new folder. ART 5 mins
-MCMCtrace(POSTERIOR.CHAINS, params = "all", Rhat = TRUE, n.eff = TRUE)#, pdf = TRUE, filename = "Beetle_240909_traceplots.pdf", wd = "Beetle_plots")
+
+######################################
+#### SAVE Diagnostics at PDF
+# MCMCtrace(POSTERIOR.CHAINS, params = "all", Rhat = TRUE, n.eff = TRUE)#, pdf = TRUE, filename = "Beetle_240909_traceplots.pdf", wd = "Beetle_plots")
 
 
 
@@ -665,18 +771,6 @@ MCMCtrace(POSTERIOR.CHAINS, params = "all", Rhat = TRUE, n.eff = TRUE)#, pdf = T
 # coda::gelman.plot(outMCMC,  multivariate = FALSE)
 
 
-library(bayesplot)
-#mcmc_areas(outMCMC, regex_pars = "Nspecies_in_AP")
-# mcmc_areas(outMCMC, regex_pars = "Nspecies_in_AP")
-
-mcmc_intervals(out.sp$beta.samples[,23:44] , point_est = "mean",
-               prob = 0.75, prob_outer = 0.95) + 
-  geom_vline(xintercept = 0, color = "red", linetype = "dashed", size = 0.5)
-
-mcmc_intervals(out.sp$beta.samples[,45:66] , point_est = "mean",
-               prob = 0.75, prob_outer = 0.95) + 
-  geom_vline(xintercept = 0, color = "red", linetype = "dashed", size = 0.5)
-
 
 # 
 # mcmc_intervals(outMCMC, pars = c("Nspecies_in_AP[1]",
@@ -706,19 +800,78 @@ mcmc_intervals(out.sp$beta.samples[,45:66] , point_est = "mean",
 
 ```
 
-> Gelman and Rubin's convergence diagnostic: Approximate convergence is diagnosed when the upper limit is close to 1.
 
-Convergence is diagnosed when the chains have ‘forgotten’ their initial values, and the output from all chains is indistinguishable. The gelman.diag diagnostic is applied to a single variable from the chain. It is based a comparison of within-chain and between-chain variances, and is similar to a classical analysis of variance.
 
-Values substantially above 1 indicate lack of convergence.
+### Posterior Summary (effect)
+#### Community effects
+
+```{r}
+#| label: fig-charts1
+#| fig-cap: "Community effects"
+#| fig-subcap: 
+#|   - "Detection"
+#|   - "Occupancy"
+#| layout-ncol: 2
+#| 
+# Create simple plot summaries using MCMCvis package.
+# Detection covariate effects --------- 
+MCMCplot(out.sp$alpha.comm.samples, ref_ovl = TRUE, ci = c(50, 95))
+# Occupancy community-level effects 
+MCMCplot(out.sp$beta.comm.samples, ref_ovl = TRUE, ci = c(50, 95))
+
+
+
+```
+
+#### Species effects
+
+```{r}
+#| label: fig-charts2
+#| fig-cap: "Species effects"
+#| fig-subcap: 
+#|   - "elevation"
+#|   - "distance border"
+#| layout-ncol: 2
+# Occupancy species-level effects 
+MCMCplot(out.sp$beta.samples[,23:44], ref_ovl = TRUE, ci = c(50, 95))
+
+# Occupancy species-level effects 
+MCMCplot(out.sp$beta.samples[,45:66], ref_ovl = TRUE, ci = c(50, 95))
+```
+
+
+### Species effects using `bayesplot`
+
+```{r}
+
+ 
+library(bayesplot)
+#mcmc_areas(outMCMC, regex_pars = "Nspecies_in_AP")
+# mcmc_areas(outMCMC, regex_pars = "Nspecies_in_AP")
+
+mcmc_intervals(out.sp$beta.samples[,23:44] , point_est = "mean",
+               prob = 0.75, prob_outer = 0.95) + 
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", size = 0.5)
+
+mcmc_intervals(out.sp$beta.samples[,45:66] , point_est = "mean",
+               prob = 0.75, prob_outer = 0.95) + 
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", size = 0.5)
+
+mcmc_intervals(out.sp$beta.samples[,67:88] , point_est = "mean",
+               prob = 0.75, prob_outer = 0.95) + 
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", size = 0.5)
+
+```
+
+
 
 ### Prediction as graph
 
-#### This prediction uses ther non spatial model
+#### This prediction uses the non spatial model
 
 ```{r}
 #| echo: true
-#| eval: false
+#| eval: true
 # 6. Prediction -----------------------------------------------------------
 # Predict occupancy along a gradient of elev   
 # Create a set of values across the range of observed elev values
@@ -738,12 +891,15 @@ border_dist.pred.vals.scale <- (border_dist.pred.vals -
                                   sd(data_list$occ.covs$border_dist)
 
 # Predict occupancy across elev  values at mean values of all other variables
-pred.df1 <- as.matrix(data.frame(intercept = 1, elev = elev.pred.vals.scale, 
-		                 border_dist = 0 ))#, catchment = 0, density = 0, 
+pred.df1 <- as.matrix(data.frame(intercept = 1, 
+                                 elev = elev.pred.vals.scale, 
+                                 border_dist = 0,
+                                 FLII=0))#, catchment = 0, density = 0, 
 		                 # slope = 0))
 # Predict occupancy across elev  values at mean values of all other variables
 pred.df2 <- as.matrix(data.frame(intercept = 1, elev = 0, 
-		                 border_dist = border_dist.pred.vals.scale ))#, catchment = 0, density = 0, 
+		                 border_dist = border_dist.pred.vals.scale,
+		                 FLII= 0 ))#, catchment = 0, density = 0, 
 		                 # slope = 0))
 
 out.pred1 <- predict(out, pred.df1) # using non spatial
@@ -793,10 +949,12 @@ ggplot(psi.plot.dat, aes(x = border_dist, y = psi.med)) +
 
 ```{r}
 #| echo: true
-#| eval: false
+#| eval: true
 
 #aggregate  resolution to (factor = 3)
-elevation_17.aggregate <- aggregate(elevation_17, fact=10)
+#transform coord data to UTM
+elevation_UTM <- project(elevation_17, "EPSG:10603")
+elevation_17.aggregate <- aggregate(elevation_UTM, fact=10)
 res(elevation_17.aggregate)
 
 # Convert the SpatRaster to a data frame with coordinates
@@ -805,27 +963,89 @@ names(df_coords) <-c("X","Y","elev")
 
 elev.pred <- (df_coords$elev - mean(data_list$occ.covs$elev)) / sd(data_list$occ.covs$elev)
 
-X.0 <- cbind(1, 1, elev.pred)#, elev.pred^2)
+
+############### Predict new data ############### 
+# we predict at one covariate varing and others at mean value = 0
+# intercept = 1, elev = 0, border_dist = 0, FLII= 0
+# in that order
+################ ################ ################ 
+predict_data <- cbind(1, elev.pred, 0, 0)
+colnames(predict_data) <- c("intercept",
+                            "elev",
+                            "border_dist",
+                            "FLII" )
+
+# X.0 <- cbind(1, 1, elev.pred)#, elev.pred^2)
+
 # coords.0 <- as.matrix(hbefElev[, c('Easting', 'Northing')])
-out.sp.ms.pred <- predict(out.sp, X.0, df_coords[,1:2])
+out.sp.ms.pred <- predict(out.sp, 
+                          X.0=predict_data, 
+                          df_coords[,1:2],
+                          threads=4)
 
+# extract the array of interest= occupancy
+predicted_array <- out.sp.ms.pred$psi.0.samples
 
+dim(predicted_array)
+df_plot <- NA # empty column
+predicted_raster_list <- list() # rast(nrows = 52, ncols = 103,
+                         #ext(elevation_17.aggregate), 
+                         # crs = "EPSG:32717")
 
+#### Loop to extract rasters to a list
+#array order: itera=3000, sp=22, pixels=5202
+for (i in 1:dim(predicted_array)[2]){
+ # Convert array slice to data frame
+ df_plot[i] <- as.data.frame(predicted_array[1, i, ]) # sp_i
+ # Producing an SDM for all (posterior mean)
+ plot.dat <- data.frame(x = df_coords$X, 
+                        y = df_coords$Y, 
+                        psi.sp = df_plot[i])
+ pred_rast <- rast(plot.dat, 
+                   type = "xyz", 
+                   crs = "EPSG:10603") # Replace EPSG:4326 with your CRS
+ predicted_raster_list[[i]] <- pred_rast
+}
 
-# Producing an SDM for all (posterior mean)
-plot.dat <- data.frame(x = df_coords$X, 
-                       y = df_coords$Y, 
-                       mean.psi = apply(out.sp.ms.pred$psi.0.samples, c(2,3), mean)[1:5202], 
-                       sd.psi = apply(out.sp.ms.pred$psi.0.samples, c(2,3), sd)[1:5202])
+# Convert the list to a SpatRaster stack
+predictad_raster_stack <- rast(predicted_raster_list)
+# put species names
+names(predictad_raster_stack) <- selected.sp
 
-library(stars)
-dat.stars <- st_as_stars(plot.dat, dims = c('x', 'y'))
-ggplot() + 
-  geom_stars(data = dat.stars, aes(x = x, y = y, fill = mean.psi)) +
-  scale_fill_viridis_c(na.value = 'transparent') + 
-  labs(x = 'Easting', y = 'Northing', fill = '', 
-       title = 'Mean OVEN occurrence probability using intPGOcc') +
-  theme_bw()
+plot(predictad_raster_stack)
+
+# get the mean
+predicted_mean <- mean(predictad_raster_stack)
+
+plot(predicted_mean, main="mean occupancy")
+# 
+#     
+# dat.stars <- st_as_stars(plot.dat.1, dims = c('x', 'y'))
+# ggplot() + 
+#   geom_stars(data = dat.stars, aes(x = x, y = y, fill = psi.sp1)) +
+#   scale_fill_viridis_c(na.value = 'transparent') + 
+#   labs(x = 'Easting', y = 'Northing', fill = '', 
+#        title = 'Mean OVEN occurrence probability using intPGOcc') +
+#   theme_bw()
+# 
+# 
+# 
+# 
+# # Producing an SDM for all (posterior mean)
+# plot.dat <- data.frame(x = df_coords$X, 
+#                        y = df_coords$Y, 
+#                        mean.psi = apply(out.sp.ms.pred$psi.0.samples, c(2,3), mean)[1:5202], 
+#                        sd.psi = apply(out.sp.ms.pred$psi.0.samples, c(2,3), sd)[1:5202])
+# 
+# 
+# library(stars)
+# dat.stars <- st_as_stars(plot.dat.1, dims = c('x', 'y'))
+# ggplot() + 
+#   geom_stars(data = dat.stars, aes(x = x, y = y, fill = psi.sp1)) +
+#   scale_fill_viridis_c(na.value = 'transparent') + 
+#   labs(x = 'Easting', y = 'Northing', fill = '', 
+#        title = 'Mean OVEN occurrence probability using intPGOcc') +
+#   theme_bw()
 
 ```
 

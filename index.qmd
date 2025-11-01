@@ -19,9 +19,7 @@ listing:
     fields: [title, image, date, categories]
 ---
 
-We want to asses the effect of protected areas on the occupancy of the species. We hypothesize that several mammal species have benefited of the conservation actions provided by protected areas, so we expect a decreases in occupancy from the interior of the protected area to the exterior as a function of the distance to the protected area border. 
-
-We used a multispecies occupancy model incorporating spatial autocorrelation, to asses occupancy as a function of the distance to the protected area border. 
+We want to asses the effect of protected areas on the occupancy of the species. We hypothesize that several mammal species have benefited of the conservation actions provided by protected areas, so we expect a decreases in occupancy from the interior of the protected area to the exterior as a function of the distance to the protected area border. We used a multispecies occupancy model incorporating spatial autocorrelation, to asses occupancy as a function of the distance to the protected area border. 
 
 To account for several ecological factors we also tested and included elevation and forest integrity index (FLII) as occupancy covariates. 
 
